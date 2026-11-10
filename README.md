@@ -32,7 +32,7 @@ installation method. Signing is not bypassed by changing the file extension.
 
 ```bash
 brew install xcodegen
-swift Scripts/create-icon.swift
+python3 Scripts/create-icon.py
 xcodegen generate
 open HaiderAPK.xcodeproj
 ```
