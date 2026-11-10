@@ -21,7 +21,7 @@ jobs:
         run: brew install xcodegen
 
       - name: Generate app icon
-        run: swift Scripts/create-icon.swift
+        run: python3 Scripts/create-icon.py
 
       - name: Generate Xcode project
         run: xcodegen generate --spec project.yml
