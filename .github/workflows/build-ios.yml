@@ -1,0 +1,65 @@
+name: Build Haider APK IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compile iOS app
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate app icon
+        run: swift Scripts/create-icon.swift
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Build for iPhone
+        run: |
+          set -eo pipefail
+          xcodebuild \
+            -project HaiderAPK.xcodeproj \
+            -scheme HaiderAPK \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath .build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee xcodebuild.log | tail -n 90
+
+      - name: Package unsigned IPA
+        run: |
+          set -e
+          mkdir -p dist/Payload
+          cp -R .build/Build/Products/Release-iphoneos/HaiderAPK.app dist/Payload/
+          cd dist
+          zip -qr HaiderAPK-unsigned.ipa Payload
+          rm -rf Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: HaiderAPK-unsigned-IPA
+          path: dist/HaiderAPK-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HaiderAPK-build-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
